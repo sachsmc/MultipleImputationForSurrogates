@@ -2,12 +2,12 @@
 samp.data.binary <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2), 
                              inc.placebo, nnn, beta.S.0.0=0, beta.S.0.1=0, 
                              beta.S.1.0, beta.S.1.1, beta.W.0=0, beta.W.1=0, 
-                             rhos1W, rhos1s0, rhosoW){
+                             rhos1W, rhos1s0, rhos0W){
   require(MASS)
   Sigma <- matrix(
-                  c(sigma[1]^2, rhos1s0*sigma[1]*sigma[2], rhosoW*sigma[1]*sigma[3], 
+                  c(sigma[1]^2, rhos1s0*sigma[1]*sigma[2], rhos0W*sigma[1]*sigma[3], 
                     rhos1s0*sigma[1]*sigma[2],sigma[2]^2, rhos1W*sigma[3]*sigma[2], 
-                    rhosoW*sigma[1]*sigma[3], rhos1W*sigma[3]*sigma[2], sigma[3]^2), 
+                    rhos0W*sigma[1]*sigma[3], rhos1W*sigma[3]*sigma[2], sigma[3]^2), 
                   nrow = 3)  ## [S(0), S(1), W]
   XXX <- mvrnorm(nnn, mu = mu, Sigma)  
   
@@ -43,27 +43,27 @@ samp.data.binary <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2),
 samp.data.tte <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2), 
                              inc.placebo, nnn, beta.S.0.0=0, beta.S.0.1=0, 
                              beta.S.1.0, beta.S.1.1, beta.W.0=0, beta.W.1=0, 
-                             rhos1W, rhos1s0, rhosoW){
+                             rhos1W, rhos1s0, rhos0W){
   require(MASS)
   Sigma <- matrix(
-    c(sigma[1]^2, rhos1s0*sigma[1]*sigma[2], rhosoW*sigma[1]*sigma[3], 
+    c(sigma[1]^2, rhos1s0*sigma[1]*sigma[2], rhos0W*sigma[1]*sigma[3], 
       rhos1s0*sigma[1]*sigma[2],sigma[2]^2, rhos1W*sigma[3]*sigma[2], 
-      rhosoW*sigma[1]*sigma[3], rhos1W*sigma[3]*sigma[2], sigma[3]^2), 
+      rhos0W*sigma[1]*sigma[3], rhos1W*sigma[3]*sigma[2], sigma[3]^2), 
     nrow = 3)  ## [S(0), S(1), W]
   XXX <- mvrnorm(nnn, mu = mu, Sigma)  
   
   ## determining alpha0 and alpha1
   
-  inc.vaccine <- (1 - TE)*inc.placebo  #incidence is incidence at 9 years (end of DCCT Trial)
+  inc.vaccine <- (1 - TE)*inc.placebo  #incidence is incidence at 9 (time is in days) years (end of DCCT Trial)
   
   find.XXX <- mvrnorm(4000, mu = mu, Sigma)
   
-  find.Y.0 <- function(alpha.0) (1 - exp(-alpha.0*9*exp(beta.S.0.0*find.XXX[,1] + beta.S.1.0*find.XXX[,2] + beta.W.0*find.XXX[,3]))) - inc.placebo
+  find.Y.0 <- function(alpha.0) mean((1 - exp(-alpha.0*9*exp(beta.S.0.0*find.XXX[,1] + beta.S.1.0*find.XXX[,2] + beta.W.0*find.XXX[,3]))) - inc.placebo)
   
-  find.Y.1 <- function(alpha.1) (1 - exp(-alpha.1*9*exp(beta.S.0.1*find.XXX[,1] + beta.S.1.1*find.XXX[,2] + beta.W.1*find.XXX[,3]))) - inc.vaccine
+  find.Y.1 <- function(alpha.1) mean((1 - exp(-alpha.1*9*exp(beta.S.0.1*find.XXX[,1] + beta.S.1.1*find.XXX[,2] + beta.W.1*find.XXX[,3]))) - inc.vaccine)
   
-  alpha.0 <- uniroot(find.Y.0, interval = c(.00001, 100))$root
-  alpha.1 <- uniroot(find.Y.1, interval = c(.00001, 100))$root
+  alpha.0 <- uniroot(find.Y.0, interval = c(1e-12, 10000000))$root
+  alpha.1 <- uniroot(find.Y.1, interval = c(1e-12, 10000000))$root
   
   ## generate Ys
   
@@ -81,26 +81,45 @@ samp.data.tte <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2),
 
 
 
-get.trial.data <- function(sample, prob.trt = .5, BIP = FALSE, BSM = FALSE, CPV = FALSE){
-  ZZZ <- rbinom( dim(sample)[1], 1, prob.trt)
-  YYY <- ifelse(ZZZ==1, sample$Y.1, sample$Y.0)
-  Y.0<- ifelse(ZZZ==1, NA, sample$Y.0)
-  Y.1<- ifelse(ZZZ==0, NA, sample$Y.1)
-  SSS <- ifelse(ZZZ==1, sample$S.1, sample$S.0)
+get.trial.data <- function(raw.data.class, prob.trt = .5, BIP = FALSE, BSM = FALSE, CPV = FALSE){
+  raw.data <- raw.data.class$sample
+  
+  ZZZ <- rbinom( dim(raw.data)[1], 1, prob.trt)
+  YYY <- ifelse(ZZZ==1, raw.data$Y.1, raw.data$Y.0)
+  SSS <- ifelse(ZZZ==1, raw.data$S.1, raw.data$S.0)
   
   ## switch for augmented trial design: none, cpv, bsm, bip or any combination thereof
-  
-  if(length(grep("simple", S.sampling)) > 0){
-    
-    prop.S <- as.numeric(gsub("simple ", "", S.sampling))
-    missing.s <- sample(1:length(SSS), length(SSS)*(1-prop.S))  
-    SSS[missing.s] <- NA
-    
-  }
   SSS[ZZZ==0] <- NA
   R<-ifelse(is.na(SSS), 0,1)
   
-  return(data.frame(S = SSS, W = sample$W, Y = YYY, Z = ZZZ, S.0 = sample$S.0, S.1 = sample$S.1, Y.0=Y.0, Y.1=Y.1, R=R))
+  dat.out <- data.frame(S = SSS, Z = ZZZ, W = raw.data$W, Y = YYY)
+  if("time" %in% class(raw.data.class)){  ## add censoring time
+    D <- as.numeric(YYY < 7.5)
+    dat.out <- cbind(dat.out, D)  
+  }
+  
+  if(!BIP){
+    dat.out$W <-NULL
+  }
+  if(BSM){
+    dat.out$BSM <- raw.data$S.0
+  }
+  if(CPV){
+    dat.out$CPV <- raw.data$S.1
+  }
+    
+  dat.out <- within(dat.out, {
+                    Y.0 <- Y
+                    Y.0[Z == 1] <- NA
+                    Y.1 <- Y
+                    Y.1[Z == 0] <- NA
+                    S.0 <- S
+                    S.0[Z == 1] <- NA
+                    S.1 <- S
+                    S.1[Z == 0] <- NA
+                    })
+  
+  return(dat.out)
   
 }
 
