@@ -30,8 +30,9 @@ samp.data.binary <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2),
   Y.0 <- unlist(lapply(p.Y.0, function(p) rbinom(1,1,p)))
   Y.1 <- unlist(lapply(p.Y.1, function(p) rbinom(1,1,p)))
   
-  output.betas <- c(alpha.0, alpha.1 - alpha.0, beta.S.1.0, beta.W.0, beta.S.1.1 - beta.S.1.0, beta.W.1 - beta.W.0)
-  names(output.betas) <- c("gamma.0.0", "gamma.1.0", "gamma.0.1", "gamma.0.2", "gamma.1.1", "gamma.1.2")
+  output.betas <- c(alpha.0, alpha.1 - alpha.0, beta.S.0.0, beta.S.1.0, beta.W.0, beta.S.0.1 - beta.S.0.0, beta.S.1.1 - beta.S.1.0, beta.W.1 - beta.W.0)
+  names(output.betas) <- c("alpha", "gamma.Z", "gamma.0.0", "gamma.0.1", "gamma.0.2", "gamma.1.0", "gamma.1.1", "gamma.1.2")
+  
   
   dat.out <- (list(sample = data.frame(Y.0 = Y.0, Y.1 = Y.1, S.0 = XXX[,1], S.1 = XXX[,2], W = XXX[,3]), output.betas = output.betas))
   class(dat.out) <- c("binary", "raw.data")
@@ -58,20 +59,20 @@ samp.data.tte <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2),
   
   find.XXX <- mvrnorm(4000, mu = mu, Sigma)
   
-  find.Y.0 <- function(alpha.0) mean((1 - exp(-alpha.0*9*exp(beta.S.0.0*find.XXX[,1] + beta.S.1.0*find.XXX[,2] + beta.W.0*find.XXX[,3]))) - inc.placebo)
+  find.Y.0 <- function(alpha.0) mean((1 - exp(-9*exp(alpha.0 + beta.S.0.0*find.XXX[,1] + beta.S.1.0*find.XXX[,2] + beta.W.0*find.XXX[,3]))) - inc.placebo)
   
-  find.Y.1 <- function(alpha.1) mean((1 - exp(-alpha.1*9*exp(beta.S.0.1*find.XXX[,1] + beta.S.1.1*find.XXX[,2] + beta.W.1*find.XXX[,3]))) - inc.vaccine)
+  find.Y.1 <- function(alpha.1) mean((1 - exp(-9*exp(alpha.1 + beta.S.0.1*find.XXX[,1] + beta.S.1.1*find.XXX[,2] + beta.W.1*find.XXX[,3]))) - inc.vaccine)
   
-  alpha.0 <- uniroot(find.Y.0, interval = c(1e-12, 10000000))$root
-  alpha.1 <- uniroot(find.Y.1, interval = c(1e-12, 10000000))$root
+  alpha.0 <- uniroot(find.Y.0, interval = c(-1e12, 10000000))$root
+  alpha.1 <- uniroot(find.Y.1, interval = c(-1e12, 10000000))$root
   
   ## generate Ys
   
-  Y.0 <- log(1 - runif(nnn))/(-alpha.0*exp(beta.S.0.0*XXX[,1] + beta.S.1.0*XXX[,2] + beta.W.0*XXX[,3]))
-  Y.1 <- log(1 - runif(nnn))/(-alpha.1*exp(beta.S.0.1*XXX[,1] + beta.S.1.1*XXX[,2] + beta.W.1*XXX[,3]))
+  Y.0 <- log(1 - runif(nnn))/(-exp(alpha.0 + beta.S.0.0*XXX[,1] + beta.S.1.0*XXX[,2] + beta.W.0*XXX[,3]))
+  Y.1 <- log(1 - runif(nnn))/(-exp(alpha.1 + beta.S.0.1*XXX[,1] + beta.S.1.1*XXX[,2] + beta.W.1*XXX[,3]))
   
-  output.betas <- c(alpha.0, alpha.1, beta.S.1.0, beta.W.0, beta.S.1.1, beta.W.1)
-  names(output.betas) <- c("alpha.0", "alpha.1", "beta.S.1.0", "beta.W.0", "beta.S.1.1", "beta.W.1")
+  output.betas <- c(alpha.0, alpha.1 - alpha.0, beta.S.0.0, beta.S.1.0, beta.W.0, beta.S.0.1 - beta.S.0.0, beta.S.1.1 - beta.S.1.0, beta.W.1 - beta.W.0)
+  names(output.betas) <- c("alpha", "gamma.Z", "gamma.0.0", "gamma.0.1", "gamma.0.2", "gamma.1.0", "gamma.1.1", "gamma.1.2")
   
   dat.out <- (list(sample = data.frame(Y.0 = Y.0, Y.1 = Y.1, S.0 = XXX[,1], S.1 = XXX[,2], W = XXX[,3]), output.betas = output.betas))
   class(dat.out) <- c("time", "raw.data")
@@ -96,6 +97,9 @@ get.trial.data <- function(raw.data.class, prob.trt = .5, BIP = FALSE, BSM = FAL
   if("time" %in% class(raw.data.class)){  ## add censoring time
     D <- as.numeric(YYY < 7.5)
     dat.out <- cbind(dat.out, D)  
+    dat.out$D.0 <- dat.out$D.1 <- dat.out$D
+    dat.out$D.0[dat.out$Z == 1] <- NA
+    dat.out$D.1[dat.out$Z == 0] <- NA
   }
   
   if(!BIP){
