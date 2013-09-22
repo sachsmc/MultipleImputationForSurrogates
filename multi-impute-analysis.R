@@ -111,8 +111,8 @@ analyze.imputed.data <- function(miceout){
  
       } else{
         
-  fit.curve <- with(miceout, glm(Y ~ Z*S.1, family = binomial(family = "probit")))
-  fit.surface <- with(miceout, glm(Y ~ Z*(S.0 + S.1), family = binomial(family = "probit")))
+  fit.curve <- with(miceout, glm(Y ~ Z*S.1, family = binomial(link = "probit")))
+  fit.surface <- with(miceout, glm(Y ~ Z*(S.0 + S.1), family = binomial(link = "probit")))
  
       }
   
