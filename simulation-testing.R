@@ -38,20 +38,18 @@ run.many <- function(scenVect, reps = 500){  ## scenVect needs to be mixed vecto
   
   ## outputs
   
-  curve.betas <- NULL
-  curve.ses <- NULL
-  surface.betas <- NULL
-  surface.ses <- NULL
-  for(i in 1:reps){
-    temp <- run.one(outcomeType, samp.args, options)
-    curve.betas <- rbind(curve.betas, temp$pool.curve$est)
-    curve.ses <- rbind(curve.ses, temp$pool.curve$se)
-    surface.betas <- rbind(surface.betas, temp$pool.surface$est)
-    surface.ses <- rbind(surface.ses, temp$pool.surface$se)
-  }
+  output.apply <- lapply(1:reps, function(fake){
+      run.one(outcomeType, samp.args, options)
+    })
+    
+  return(
   
-  list(curve = list(betas = curve.betas, ses = curve.ses), surface = list(betas = surface.betas, ses = surface.ses))
+  list(curve = list(betas = t(sapply(output.apply, function(d) d$pool.curve$est)), 
+                    ses = t(sapply(output.apply, function(d) d$pool.curve$se))), 
+       surface = list(betas = t(sapply(output.apply, function(d) d$pool.surface$est)), 
+                      ses = t(sapply(output.apply, function(d) d$pool.surface$se))))
   
+  )
   
 }                                        
                                            

@@ -71,7 +71,7 @@ samp.data.tte <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2),
   Y.0 <- log(1 - runif(nnn))/(-exp(alpha.0 + beta.S.0.0*XXX[,1] + beta.S.1.0*XXX[,2] + beta.W.0*XXX[,3]))
   Y.1 <- log(1 - runif(nnn))/(-exp(alpha.1 + beta.S.0.1*XXX[,1] + beta.S.1.1*XXX[,2] + beta.W.1*XXX[,3]))
   
-  output.betas <- c(alpha.0, alpha.1 - alpha.0, beta.S.0.0, beta.S.1.0, beta.W.0, beta.S.0.1 - beta.S.0.0, beta.S.1.1 - beta.S.1.0, beta.W.1 - beta.W.0)
+  output.betas <- -1*c(alpha.0, alpha.1 - alpha.0, beta.S.0.0, beta.S.1.0, beta.W.0, beta.S.0.1 - beta.S.0.0, beta.S.1.1 - beta.S.1.0, beta.W.1 - beta.W.0)
   names(output.betas) <- c("alpha", "gamma.Z", "gamma.0.0", "gamma.0.1", "gamma.0.2", "gamma.1.0", "gamma.1.1", "gamma.1.2")
   
   dat.out <- (list(sample = data.frame(Y.0 = Y.0, Y.1 = Y.1, S.0 = XXX[,1], S.1 = XXX[,2], W = XXX[,3]), output.betas = output.betas))
@@ -100,6 +100,7 @@ get.trial.data <- function(raw.data.class, prob.trt = .5, BIP = FALSE, BSM = FAL
     dat.out$D.0 <- dat.out$D.1 <- dat.out$D
     dat.out$D.0[dat.out$Z == 1] <- NA
     dat.out$D.1[dat.out$Z == 0] <- NA
+    dat.out$Y[D==0] <- 7.5
   }
   
   if(!BIP){
