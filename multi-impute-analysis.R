@@ -22,17 +22,11 @@ get.R.hat <- function(miceout){
 impute.data <- function(trial.data, iterations = 20){
   require(mice)
 
-  iter0.mice <- mice(trial.data[,c("S", "W")], m = 1, print = FALSE, niter = iterations,
-                     method = "norm", predictorMatrix = matrix(c(0, 0,  1, 0), nrow =2))
-  
-  trial.data$S.0[trial.data$Z == 0] <- complete(iter0.mice)$S[trial.data$Z == 0]
-
-  ## impute S0 and S1  ~  W
-  
   ## now impute the outcome
   
   if("D" %in% colnames(trial.data)){  # time to event
-    trial.temp <- within(trial.data[,c("Z", "S.0", "S.1", "W", "D.1", "D.0","Y.1", "Y.0", "Y", "D")], {
+  
+  trial.temp <- within(trial.data[,c("Z", "S.0", "S.1", "W", "D.1", "D.0","Y.1", "Y.0", "Y", "D")], {
                          Y.1 <- log(Y.1)
                          Y.0 <- log(Y.0)
                          D.0 <- as.factor(D.0)

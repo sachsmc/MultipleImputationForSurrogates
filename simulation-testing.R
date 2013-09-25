@@ -4,7 +4,7 @@ source("multi-impute-analysis.R")
 #defaults
 #binary or tte  TE = .6; sigma = c(1, 1, 1); mu = c(0,2,2); inc.placebo = .2; 
 #nnn=4000; beta.S.0.0=0; beta.S.0.1=0; beta.S.1.0 = 0; 
-#beta.S.1.1 = 0; beta.W.0=0; beta.W.1=0; rhos1W=0.8; rhos1s0=0.3; rhosoW=0.8
+#beta.S.1.1 = 0; beta.W.0=0; beta.W.1=0; rhos1W=0.8; rhos1s0=0.3; rhos0W=0.8
 
 #samp.args <- list(TE = .6, sigma = c(1,1,1), mu = c(0,2,2), inc.placebo = .2,
  #                 nnn = 4000, beta.S.0.0 = 0, beta.S.0.1 = 0, beta.S.1.0 = 0, 
@@ -20,6 +20,9 @@ trial.data <- do.call("get.trial.data",
                            BIP = options$BIP, BSM = options$BSM, CPV = options$CPV))
   
 miceout <- impute.data(trial.data, iterations = options$iterations)
+  
+  R.hat <- get.R.hat(miceout)  ## doesn't do anything with this yet
+  
 analysis <- analyze.imputed.data(miceout)
   
 lapply(analysis, function(lll) list(est = lll$qbar, se = sqrt(diag( lll$t ))))

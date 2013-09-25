@@ -90,9 +90,7 @@ get.trial.data <- function(raw.data.class, prob.trt = .5, BIP = FALSE, BSM = FAL
   SSS <- ifelse(ZZZ==1, raw.data$S.1, raw.data$S.0)
   
   ## switch for augmented trial design: none, cpv, bsm, bip or any combination thereof
-  SSS[ZZZ==0] <- NA
-  R<-ifelse(is.na(SSS), 0,1)
-  
+    
   dat.out <- data.frame(S = SSS, Z = ZZZ, W = raw.data$W, Y = YYY)
   if("time" %in% class(raw.data.class)){  ## add censoring time
     D <- as.numeric(YYY < 7.5)
@@ -103,16 +101,7 @@ get.trial.data <- function(raw.data.class, prob.trt = .5, BIP = FALSE, BSM = FAL
     dat.out$Y[D==0] <- 7.5
   }
   
-  if(!BIP){
-    dat.out$W <-NULL
-  }
-  if(BSM){
-    dat.out$BSM <- raw.data$S.0
-  }
-  if(CPV){
-    dat.out$CPV <- raw.data$S.1
-  }
-    
+  
   dat.out <- within(dat.out, {
                     Y.0 <- Y
                     Y.0[Z == 1] <- NA
@@ -124,6 +113,19 @@ get.trial.data <- function(raw.data.class, prob.trt = .5, BIP = FALSE, BSM = FAL
                     S.1[Z == 0] <- NA
                     })
   
+  if(!BIP){
+    dat.out$W <-NA
+  }
+  if(BSM){
+    dat.out$S.0[dat.out$Z == 1] <- raw.data$S.0[ZZZ == 1]
+  }
+  if(CPV){
+    if("D" %in% colnames(dat.out)){
+    dat.out$S.1[with(dat.out, Z == 0 & D == 0)] <- raw.data$S.1[with(dat.out, Z == 0 & D == 0)]
+  } else{
+    dat.out$S.1[with(dat.out, Z == 0 & Y == 0)] <- raw.data$S.1[with(dat.out, Z == 0 & Y == 0)]
+  }}
+    
   return(dat.out)
   
 }
