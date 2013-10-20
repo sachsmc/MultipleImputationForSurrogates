@@ -43,15 +43,16 @@ impute.data <- function(trial.data, iterations = 20){
     
     
   }  else{
-    
+    predmat <- 1 - diag(7)
+    predmat[,c(1,2, 3, 5,6,7)] <- 0
     trial.data$Y.1 <- as.factor(trial.data$Y.1)
     trial.data$Y.0 <- as.factor(trial.data$Y.0)
     iter1.mice <- mice(trial.data[,c("Z", "S.0", "S.1", "W", "Y.1", "Y.0", "Y")], 
                        m = 5, print = FALSE, maxit = iterations,
-                       method = c("", "norm", "norm", "", "logreg", "logreg", ""), 
-                       predictorMatrix = 1 - diag(7))
+                       method = c("", "norm","norm", "", "logreg", "logreg", ""), 
+                       predictorMatrix = predmat)
     
-    
+    #iter1.mice <- mice(trial.data[,c("Z", "S.0", "S.1", "W", "Y.1", "Y.0", "Y")], m = 5, print = FALSE, maxit = iterations)
   }
   return(iter1.mice)
 }
