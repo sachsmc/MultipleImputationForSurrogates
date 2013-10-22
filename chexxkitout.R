@@ -49,32 +49,36 @@ function (y, ry, x, ridge = 0, ...)
   return(parm)
 }
 
+source("meta-analysis-generation_new.R")
+source("mice_test.R")
+
 run.one <- function(a){
-  sample0 <- samp.data.binary(.6, sigma = c(1, 1, 1), mu = c(0,2,2), 
+  require(mice)
+  sample0 <- samp.data.tte(.6, sigma = c(1, 1, 1), mu = c(0,2,2), 
                                .2, 4000, .06, 1.26, beta.S.0.0=0, beta.S.0.1=0, 
                                beta.S.1.0 = -.25, beta.S.1.1=-1, beta.W.0=0, beta.W.1=0, 
                                rhos1W=.8, rhos1s0=.3, rhos0W=.8)
     
-  trial.data <- get.trial.data(sample0, .5, BIP = TRUE, BSM = F, CPV = F)
+  trial.data <- get.trial.data(sample0, .5, BIP = TRUE, BSM = TRUE, CPV = F)
 
-  trial.data$Y.0 <- as.factor(trial.data$Y.0)
-  trial.data$Y.1 <- as.factor(trial.data$Y.1)
+  #trial.data$Y.0 <- as.factor(trial.data$Y.0)
+  #trial.data$Y.1 <- as.factor(trial.data$Y.1)
   
   predmat <- 1 - diag(dim(trial.data)[2])
-  predmat[,c(1, 2, 4)] <- 0
+  #predmat[,c(1, 2, 4)] <- 0
   
-  micetest <- mice(trial.data, predictorMatrix = predmat, print = F, maxit = 30, m = 5,
-                   method = c("", "", "", "", "norm", "norm", "probit", "probit"))
-  #predmat[,c(1, 2, 4, 5)] <- 0
-  #predmat[10, c(7, 11)] <- 0
-  #predmat[11, c(6, 10)] <- 0
-  #micetest <- mice(trial.data, predictorMatrix= predmat, print = F, maxit = 15,
-  #                 method = c(rep("", 5), "pmm", "pmm", "norm", "norm", "survreg", "survreg"))
-  #pool(with(micetest, survreg(Surv(Y, D)~ Z*S.1, dist = "exponential")))$qbar
-  pool(with(micetest, glm(Y ~ Z*S.1, family = binomial(link = "probit"))))$qbar
+  #micetest <- mice(trial.data, predictorMatrix = predmat, print = F, maxit = 30, m = 5,
+  #                 method = c("", "", "", "", "norm", "norm", "probit", "probit"))
+  predmat[,c(1, 2, 4, 5)] <- 0
+  predmat[10, c(7, 11)] <- 0
+  predmat[11, c(6, 10)] <- 0
+  micetest <- mice(trial.data, predictorMatrix= predmat, print = F, maxit = 15, ridge = 0,
+                   method = c(rep("", 5), "pmm", "pmm", "norm", "norm", "survweibull", "survweibull"))
+  pool(with(micetest, survreg(Surv(Y, D)~ Z*S.1, dist = "exponential")))$qbar
+  #pool(with(micetest, glm(Y ~ Z*S.1, family = binomial(link = "probit"))))$qbar
 }
 
-sample0 <- samp.data.binary(.6, sigma = c(1, 1, 1), mu = c(0,2,2), 
+sample0 <- samp.data.tte(.6, sigma = c(1, 1, 1), mu = c(0,2,2), 
                             .2, 4000, .06, 1.26, beta.S.0.0=0, beta.S.0.1=0, 
                             beta.S.1.0 = -.25, beta.S.1.1=-1, beta.W.0=0, beta.W.1=0, 
                             rhos1W=.8, rhos1s0=.3, rhos0W=.8)
