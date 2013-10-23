@@ -1,7 +1,7 @@
 
 samp.data.binary <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2), 
                              inc.placebo, nnn, alpha.0, alpha.1, beta.S.0.0=0, beta.S.0.1=0, 
-                             beta.S.1.0, beta.S.1.1, beta.W.0=0, beta.W.1=0, 
+                             beta.S.1.0, beta.S.1.1, beta.W.0=0, beta.W.1=0, beta.X = .1,
                              rhos1W, rhos1s0, rhos0W){
   require(MASS)
   Sigma <- matrix(
@@ -22,8 +22,8 @@ samp.data.binary <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2),
 #  alpha.0 <- uniroot(find.Y.0, interval = c(-100, 100))$root
 #  alpha.1 <- uniroot(find.Y.1, interval = c(-100, 100))$root
   
-  p.Y.0 <- pnorm(alpha.0 + beta.S.0.0*XXX[,1] + beta.S.1.0*XXX[,2] + beta.W.0*XXX[,3])
-  p.Y.1 <- pnorm(alpha.1 + beta.S.0.1*XXX[,1] + beta.S.1.1*XXX[,2] + beta.W.1*XXX[,3])
+  p.Y.0 <- pnorm(alpha.0 + beta.S.0.0*XXX[,1] + beta.S.1.0*XXX[,2] + beta.W.0*XXX[,3] + beta.X*X)
+  p.Y.1 <- pnorm(alpha.1 + beta.S.0.1*XXX[,1] + beta.S.1.1*XXX[,2] + beta.W.1*XXX[,3] + beta.X*X)
 
 ## generate Ys
 
@@ -35,7 +35,7 @@ samp.data.binary <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2),
   names(output.betas) <- c("alpha", "gamma.Z", "gamma.0.0", "gamma.0.1", "gamma.0.2", "gamma.1.0", "gamma.1.1", "gamma.1.2")
   
   
-  dat.out <- (list(sample = data.frame(Y.0 = Y.0, Y.1 = Y.1, S.0 = XXX[,1], S.1 = XXX[,2], W = XXX[,3]), output.betas = output.betas))
+  dat.out <- (list(sample = data.frame(Y.0 = Y.0, Y.1 = Y.1, S.0 = XXX[,1], S.1 = XXX[,2], W = XXX[,3], X = X), output.betas = output.betas))
   class(dat.out) <- c("binary", "raw.data")
   return(dat.out)
 
@@ -44,7 +44,7 @@ samp.data.binary <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2),
 
 samp.data.tte <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2), 
                              inc.placebo, nnn, alpha.0, alpha.1, beta.S.0.0=0, beta.S.0.1=0, 
-                             beta.S.1.0, beta.S.1.1, beta.W.0=0, beta.W.1=0, 
+                             beta.S.1.0, beta.S.1.1, beta.W.0=0, beta.W.1=0, beta.X = .1, 
                              rhos1W, rhos1s0, rhos0W){
   require(MASS)
   require(survival)
@@ -68,17 +68,19 @@ samp.data.tte <- function(TE, sigma = c(1, 1, 1), mu = c(0,2,2),
 #  alpha.0 <- uniroot(find.Y.0, interval = c(-1e12, 10000000))$root
 #  alpha.1 <- uniroot(find.Y.1, interval = c(-1e12, 10000000))$root
   
+  X <- rnorm(nnn)
+  
   ## generate Ys
   
-  Y.0 <- log(1 - runif(nnn))/(-exp(alpha.0 + beta.S.0.0*XXX[,1] + beta.S.1.0*XXX[,2] + beta.W.0*XXX[,3]))
-  Y.1 <- log(1 - runif(nnn))/(-exp(alpha.1 + beta.S.0.1*XXX[,1] + beta.S.1.1*XXX[,2] + beta.W.1*XXX[,3]))
+  Y.0 <- log(1 - runif(nnn))/(-exp(alpha.0 + beta.S.0.0*XXX[,1] + beta.S.1.0*XXX[,2] + beta.W.0*XXX[,3] + beta.X*X))
+  Y.1 <- log(1 - runif(nnn))/(-exp(alpha.1 + beta.S.0.1*XXX[,1] + beta.S.1.1*XXX[,2] + beta.W.1*XXX[,3] + beta.X*X))
   
   output.betas <- -1*c(alpha.0, alpha.1 - alpha.0, beta.S.0.0, 
                        beta.S.1.0, beta.W.0, beta.S.0.1 - beta.S.0.0, 
-                       beta.S.1.1 - beta.S.1.0, beta.W.1 - beta.W.0)
-  names(output.betas) <- c("alpha", "gamma.Z", "gamma.0.0", "gamma.0.1", "gamma.0.2", "gamma.1.0", "gamma.1.1", "gamma.1.2")
+                       beta.S.1.1 - beta.S.1.0, beta.W.1 - beta.W.0, beta.X)
+  names(output.betas) <- c("alpha", "gamma.Z", "gamma.0.0", "gamma.0.1", "gamma.0.2", "gamma.1.0", "gamma.1.1", "gamma.1.2", "gamma.X")
   
-  dat.out <- (list(sample = data.frame(Y.0 = Y.0, Y.1 = Y.1, S.0 = XXX[,1], S.1 = XXX[,2], W = XXX[,3]), 
+  dat.out <- (list(sample = data.frame(Y.0 = Y.0, Y.1 = Y.1, S.0 = XXX[,1], S.1 = XXX[,2], W = XXX[,3], X = X), 
                    output.betas = output.betas))
   class(dat.out) <- c("time", "raw.data")
   return(dat.out)
@@ -96,7 +98,7 @@ get.trial.data <- function(raw.data.class, prob.trt = .5, BIP = FALSE, BSM = FAL
   
   ## switch for augmented trial design: none, cpv, bsm, bip or any combination thereof
     
-  dat.out <- data.frame(S = SSS, Z = ZZZ, W = raw.data$W, Y = YYY)
+  dat.out <- data.frame(S = SSS, Z = ZZZ, W = raw.data$W, X = raw.data$X, Y = YYY)
   if("time" %in% class(raw.data.class)){  ## add censoring time
     D <- as.numeric(YYY < 7.5)
     dat.out <- cbind(dat.out, D)  
@@ -168,7 +170,7 @@ mice.impute.survreg <- function(y, ry, x, ...){
   fit.y <- survreg(as.formula(form), data = dat.temp[ry,], dist ="exponential")
   
   beta.star <- mvrnorm(1, mu = fit.y$coeff, Sigma = vcov(fit.y))
-  fit.y$coeff <- beta.star
+  fit.y$coefficients <- beta.star
   lambda <- predict(fit.y, newdata = dat.temp[!ry,], type = "lp")
   return( log(1 - runif(length(lambda)))/(-exp(lambda)) )
   
@@ -211,7 +213,7 @@ mice.impute.survweibull <- function(y, ry, x, ...){
   stars.out <- mvrnorm(1, mu = c(fit.y$coeff,log(fit.y$scale)), Sigma = vcov(fit.y))
   scale.star <- stars.out[num]
   beta.star<-stars.out[-num]
-  fit.y$coeff <- beta.star
+  fit.y$coefficients <- beta.star
   fit.y$scale <-exp(scale.star)
   lambda <- predict(fit.y, newdata = dat.temp[!ry,], type = "lp")
   

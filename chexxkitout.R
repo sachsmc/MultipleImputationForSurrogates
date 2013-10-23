@@ -56,8 +56,8 @@ run.one <- function(a){
   require(mice)
   sample0 <- samp.data.tte(.6, sigma = c(1, 1, 1), mu = c(0,2,2), 
                                .2, 4000, .06, 1.26, beta.S.0.0=0, beta.S.0.1=0, 
-                               beta.S.1.0 = -.25, beta.S.1.1=-1, beta.W.0=0, beta.W.1=0, 
-                               rhos1W=.8, rhos1s0=.3, rhos0W=.8)
+                               beta.S.1.0 = -.25, beta.S.1.1=-1, beta.W.0=0, beta.W.1=0, beta.X = .1,
+                               rhos1W=.5, rhos1s0=.3, rhos0W=.5)
     
   trial.data <- get.trial.data(sample0, .5, BIP = TRUE, BSM = TRUE, CPV = F)
 
@@ -69,27 +69,27 @@ run.one <- function(a){
   
   #micetest <- mice(trial.data, predictorMatrix = predmat, print = F, maxit = 30, m = 5,
   #                 method = c("", "", "", "", "norm", "norm", "probit", "probit"))
-  predmat[,c(1, 2, 4, 5)] <- 0
-  predmat[10, c(7, 11)] <- 0
-  predmat[11, c(6, 10)] <- 0
+  predmat[,c(1, 2, 5, 6)] <- 0
+  predmat[11, c(8, 12)] <- 0
+  predmat[12, c(7, 11)] <- 0
   micetest <- mice(trial.data, predictorMatrix= predmat, print = F, maxit = 15, ridge = 0,
-                   method = c(rep("", 5), "pmm", "pmm", "norm", "norm", "survweibull", "survweibull"))
-  pool(with(micetest, survreg(Surv(Y, D)~ Z*S.1, dist = "exponential")))$qbar
-  #pool(with(micetest, glm(Y ~ Z*S.1, family = binomial(link = "probit"))))$qbar
+                   method = c(rep("", 6), "pmm", "pmm", "norm", "norm", "survweibull", "survweibull"))
+  pool(with(micetest, survreg(Surv(Y, D)~ Z*S.1 + X, dist = "exponential")))$qbar
+  #pool(with(micetest, glm(Y ~ Z*S.1 , family = binomial(link = "probit"))))$qbar
 }
 
 sample0 <- samp.data.tte(.6, sigma = c(1, 1, 1), mu = c(0,2,2), 
                             .2, 4000, .06, 1.26, beta.S.0.0=0, beta.S.0.1=0, 
-                            beta.S.1.0 = -.25, beta.S.1.1=-1, beta.W.0=0, beta.W.1=0, 
-                            rhos1W=.8, rhos1s0=.3, rhos0W=.8)
+                            beta.S.1.0 = -.25, beta.S.1.1=-1, beta.W.0=0, beta.W.1=0, beta.X = .1,
+                            rhos1W=.5, rhos1s0=.3, rhos0W=.5)
 
 
-troof <- sample0$output.betas[c(1, 2, 3, 4, 6, 7)]
+troof <- sample0$output.betas[c(1, 2, 4, 9, 7)]
 checkme <- as.data.frame(t(sapply(1:50, run.one)))
 
 #troof
 
-100*(colMeans(checkme) - troof[c(1, 2, 4, 6)])/sqrt(diag(cov(checkme)))
+100*(colMeans(checkme) - troof)/sqrt(diag(cov(checkme)))
 
 scen8 <- read.csv("~/Downloads/S0NO_S1high_binary_BIP0.80.2_rightWed Oct  9 14:11:10 2013_coeffcients_curve.csv")
 scen8 <- read.csv("~/Downloads/S0NO_S1high_tte_nothing_rightThu Oct 10 01:25:30 2013_coeffcients_curve.csv")
